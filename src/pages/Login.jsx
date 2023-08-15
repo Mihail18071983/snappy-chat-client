@@ -46,7 +46,9 @@ export default function Login() {
       const { data } = await axios.post(loginRoute, {
         username,
         password,
+        isOnline: true,
       });
+      console.log(data);
       if (data.status === false) {
         toast.error(data.msg, toastOptions);
       }
@@ -55,7 +57,6 @@ export default function Login() {
           process.env.REACT_APP_LOCALHOST_KEY,
           JSON.stringify(data.user)
         );
-
         navigate("/");
       }
     }

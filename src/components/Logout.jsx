@@ -4,16 +4,34 @@ import { BiPowerOff } from "react-icons/bi";
 import styled from "styled-components";
 import axios from "axios";
 import { logoutRoute } from "../utils/APIRoutes";
-export default function Logout() {
+
+export default function Logout({ socket }) {
   const navigate = useNavigate();
+
   const handleClick = async () => {
-    const id = await JSON.parse(
+    const currentUser = await JSON.parse(
       localStorage.getItem(process.env.REACT_APP_LOCALHOST_KEY)
-    )._id;
-    const data = await axios.get(`${logoutRoute}/${id}`);
-    if (data.status === 200) {
-      localStorage.clear();
-      navigate("/login");
+    );
+    if (currentUser) {
+      try {
+        const userId = currentUser._id;
+        console.log("Emitting user-offline event");
+        socket.current.emit("user-offline", userId, (acknowledgment) => {
+          if (acknowledgment === "success") {
+            currentUser.isOnline = false
+          }
+          else {
+          console.log("Error emitting user-offline event");
+        }
+        });
+        const data = await axios.get(`${logoutRoute}/${userId}`);
+        if (data.status === 200) {
+          localStorage.clear();
+          navigate("/login");
+        }
+      } catch (err) {
+        console.log(err);
+      }
     }
   };
   return (

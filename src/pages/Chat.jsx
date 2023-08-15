@@ -1,9 +1,9 @@
-import  { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import { io } from "socket.io-client";
+import io from "socket.io-client";
 import styled from "styled-components";
-import { allUsersRoute, host } from "../utils/APIRoutes";
+import { allUsersRoute, host, updateUserStatusRoute } from "../utils/APIRoutes";
 import ChatContainer from "../components/ChatContainer";
 import Contacts from "../components/Contacts";
 import Welcome from "../components/Welcome";
@@ -14,8 +14,21 @@ export default function Chat() {
   const [contacts, setContacts] = useState([]);
   const [currentChat, setCurrentChat] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
+  // socket.current = io(host);
 
-   useEffect(() => {
+  useEffect(() => {
+    // Establish the socket connection when the component mounts
+    socket.current = io(host);
+
+    // Disconnect the socket when the component unmounts
+    return () => {
+      if (socket.current) {
+        socket.current.disconnect();
+      }
+    };
+  }, []);
+
+  useEffect(() => {
     async function checkLogin() {
       if (!localStorage.getItem(process.env.REACT_APP_LOCALHOST_KEY)) {
         navigate("/login");
@@ -28,28 +41,82 @@ export default function Chat() {
       }
     }
     checkLogin();
-   }, [navigate]);
-  
+  }, [navigate]);
+
   useEffect(() => {
     if (currentUser) {
-      socket.current = io(host);
+      // socket.current = io(host);
       socket.current.emit("add-user", currentUser._id);
     }
   }, [currentUser]);
 
- useEffect(() => {
-    async function fetchContacts() {
+  useEffect(() => {
+    async function fetchChatMates() {
       if (currentUser) {
         if (currentUser.isAvatarImageSet) {
-          const { data } = await axios.get(`${allUsersRoute}/${currentUser._id}`);
+          const { data } = await axios.get(
+            `${allUsersRoute}/${currentUser._id}`
+          );
+          console.log("contacts", data);
           setContacts(data);
         } else {
           navigate("/setAvatar");
         }
       }
     }
-    fetchContacts();
+    fetchChatMates();
   }, [currentUser, navigate]);
+
+  useEffect(() => {
+    socket.current.on("user-offline", (userId) => {
+      setContacts((prevContacts) =>
+        prevContacts.map((contact) => {
+          if (contact._id === userId) {
+            return { ...contact, isOnline: false };
+          }
+          return contact;
+        })
+      );
+    });
+  }, []);
+
+  useEffect(() => {
+    if (currentUser) {
+      try {
+        const userId = currentUser._id;
+        console.log("Adding user to socket:", userId);
+        socket.current.on("connect", async () => {
+          console.log("Connected");
+          socket.current.emit("user-online", userId);
+          await axios.patch(updateUserStatusRoute, {
+            userId,
+            isOnline: true,
+          });
+        });
+      } catch (err) {
+        console.log(err);
+      }
+    }
+  }, [currentUser]);
+
+  useEffect(() => {
+    if (currentUser) {
+      try {
+        const userId = currentUser._id;
+        socket.current.on("disconnect", async () => {
+          console.log("disconnect");
+          socket.current.emit("user-offline", userId);
+          await axios.patch(updateUserStatusRoute, {
+            userId,
+            isOnline: false,
+          });
+        });
+      } catch (err) {
+        console.error(err);
+      }
+      return () => socket.current.disconnect();
+    }
+  }, [currentUser]);
 
   const handleChatChange = (chat) => {
     setCurrentChat(chat);
@@ -58,11 +125,15 @@ export default function Chat() {
     <>
       <Container>
         <div className="container">
-          <Contacts contacts={contacts} changeChat={handleChatChange} />
+          <Contacts
+            contacts={contacts}
+            changeChat={handleChatChange}
+            socket={socket.current}
+          />
           {!currentChat ? (
             <Welcome />
           ) : (
-            <ChatContainer currentChat={currentChat} socket={socket} />
+            <ChatContainer currentChat={currentChat}/>
           )}
         </div>
       </Container>

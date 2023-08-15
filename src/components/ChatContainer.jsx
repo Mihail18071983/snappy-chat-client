@@ -96,7 +96,7 @@ export default function ChatContainer({ currentChat, socket }) {
             </div>
           </div>
         )}
-        <Logout />
+        <Logout socket={socket} />
       </div>
       <div className="chat-messages">
         {messages.map((message) => {

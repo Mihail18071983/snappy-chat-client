@@ -6,7 +6,13 @@ export default function Contacts({ contacts, changeChat }) {
   const [currentUserName, setCurrentUserName] = useState(null);
   const [currentUserImage, setCurrentUserImage] = useState(null);
   const [currentSelected, setCurrentSelected] = useState(null);
+  // console.log("contacts", contacts);
 
+  useEffect(() => {
+  console.log("Contacts re-rendered with updated prop:", contacts);
+  }, [contacts]);
+
+  
   useEffect(() => {
     const fetchData = async () => {
       const data = JSON.parse(
@@ -48,7 +54,11 @@ export default function Contacts({ contacts, changeChat }) {
                       alt=""
                     />
                   </div>
-                  <div className="username">
+                  <div
+                    className={`username ${
+                      contact.isOnline ? "online" : "offline"
+                    }`}
+                  >
                     <h3>{contact.username}</h3>
                   </div>
                 </div>
@@ -120,11 +130,27 @@ const Container = styled.div`
         }
       }
       .username {
+        display: flex;
+        gap: 1rem;
         h3 {
           color: white;
         }
+        &::after {
+          content: "";
+          display: block;
+          width: 1rem;
+          height: 1rem;
+          border-radius: 50%;
+        }
+        &.offline::after {
+          background-color: #ff0000;
+        }
+        &.online::after {
+          background-color: #00ff00;
+        }
       }
     }
+
     .selected {
       background-color: #9a86f3;
     }

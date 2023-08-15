@@ -69,7 +69,9 @@ export default function Register() {
         username,
         email,
         password,
+        isOnline: true
       });
+      console.log(data);
 
       if (data.status === false) {
         toast.error(data.msg, toastOptions);
