@@ -133,7 +133,7 @@ export default function Chat() {
           {!currentChat ? (
             <Welcome />
           ) : (
-            <ChatContainer currentChat={currentChat}/>
+            <ChatContainer currentChat={currentChat} socket={socket.current} />
           )}
         </div>
       </Container>

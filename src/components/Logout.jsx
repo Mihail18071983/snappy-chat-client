@@ -16,7 +16,7 @@ export default function Logout({ socket }) {
       try {
         const userId = currentUser._id;
         console.log("Emitting user-offline event");
-        socket.current.emit("user-offline", userId, (acknowledgment) => {
+        socket.emit("user-offline", userId, (acknowledgment) => {
           if (acknowledgment === "success") {
             currentUser.isOnline = false
           }
